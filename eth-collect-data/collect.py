@@ -5,7 +5,6 @@ import requests
 import sys
 import time
 
-
 parser = argparse.ArgumentParser(
     description='Collect past transactions from ethereum network.')
 parser.add_argument('--infura-api-token',
@@ -25,13 +24,15 @@ group.add_argument('-m', '--minus', type=int,
 args = parser.parse_args()
 
 
-def ethRequest(method, *params):
+def eth_request(method, *params):
     url = 'https://%s.infura.io/%s' % (args.network, args.infura_api_token)
     payload = {'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params}
     while True:
         try:
             ret = requests.post(url, data=json.dumps(payload))
-        except requests.exceptions.SSLError:
+        except (requests.exceptions.SSLError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.HTTPError):
             time.sleep(args.sleep)
         else:
             break
@@ -39,23 +40,23 @@ def ethRequest(method, *params):
     return ret.json()['result']
 
 
-def blockNumberToHex(blockNumber):
+def block_number_to_hex(blockNumber):
     return '0x%x' % blockNumber
 
 
 if args.start:
-    blockNumber = args.start
+    block_number = args.start
 else:
-    blockNumber = int(ethRequest('eth_blockNumber'), 16) - args.minus
+    block_number = int(eth_request('eth_blockNumber'), 16) - args.minus
 
 while True:
     if args.verbose:
-        sys.stderr.write('%d, ' % blockNumber)
-    block = ethRequest('eth_getBlockByNumber',
-                       blockNumberToHex(blockNumber),
-                       False)
+        sys.stderr.write('%d, ' % block_number)
+    block = eth_request('eth_getBlockByNumber',
+                        block_number_to_hex(block_number),
+                        False)
     if not block:
         break
     print '%s,' % json.dumps(block, indent=4)
-    blockNumber += 1
+    block_number += 1
     time.sleep(args.sleep)
