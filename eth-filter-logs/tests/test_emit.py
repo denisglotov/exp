@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from web3 import datastructures
+from web3 import datastructures, exceptions
 import pytest
 import json
 
@@ -10,7 +10,7 @@ def emitter(Emitter, accounts):
     return Emitter.deploy({'from': accounts[0]})
 
 
-def test_emit(accounts, emitter, web3):
+def test_emit(accounts, emitter, web3, Emitter):
     tx = emitter.send({'from': accounts[0]})
 
     assert len(tx.events) == 5
@@ -28,8 +28,18 @@ def test_emit(accounts, emitter, web3):
     )
     logs = web3.eth.get_filter_logs(filt.filter_id)
 
+    contract = web3.eth.contract(abi=Emitter.abi)
+    parsed_logs = []
+    for event in logs:
+        for evt in contract.events:
+            try:
+                parsed_logs.append(evt().processLog(event))
+                break
+            except exceptions.MismatchedABI:
+                pass
+
     with open("out.txt", "w") as out:
-        out.write(json.dumps(logs, cls=JsonEthereumEncoder, indent=4))
+        out.write(json.dumps(parsed_logs, cls=JsonEthereumEncoder, indent=4))
 
 
 class JsonEthereumEncoder(json.JSONEncoder):
