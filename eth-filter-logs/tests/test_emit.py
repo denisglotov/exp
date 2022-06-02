@@ -19,10 +19,11 @@ def test_emit(accounts, emitter, web3):
             'address': emitter.address,
             'fromBlock': tx.block_number,
             'toBlock': tx.block_number,
-            'topics': [
-                # web3.keccak(text="B(uint256,uint256)").hex(),
+            'topics': [[
                 web3.keccak(text="A(uint256)").hex(),
-            ]
+                web3.keccak(text="B(uint256,uint256)").hex(),
+                web3.keccak(text="D(uint256,uint8,string)").hex(),
+            ]]
         }
     )
     logs = web3.eth.get_filter_logs(filt.filter_id)
